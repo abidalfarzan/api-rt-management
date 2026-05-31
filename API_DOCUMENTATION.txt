@@ -1,0 +1,751 @@
+================================================================================
+                    RT MANAGEMENT SYSTEM - API DOCUMENTATION
+                          For AI Agent Front-End Builder
+================================================================================
+
+BASE URL: http://localhost/api
+CONTENT-TYPE: application/json
+METHOD: RESTful API
+
+================================================================================
+                              1. HOUSES (RUMAH) API
+================================================================================
+
+1.1 LIST ALL HOUSES
+Method: GET
+Endpoint: /api/houses
+Description: Get all houses with their active residents
+Response:
+{
+  "id": 1,
+  "house_number": "A-01",
+  "address": "Jln. Example Street",
+  "status": "dihuni" or "tidak_dihuni",
+  "residents": [
+    {
+      "id": 1,
+      "full_name": "John Doe",
+      "pivot": {
+        "start_date": "2024-01-01",
+        "end_date": null,
+        "is_active": true
+      }
+    }
+  ],
+  "created_at": "2024-01-01T10:00:00Z",
+  "updated_at": "2024-01-01T10:00:00Z"
+}
+
+---
+
+1.2 CREATE NEW HOUSE
+Method: POST
+Endpoint: /api/houses
+Description: Create a new house
+Request Body:
+{
+  "house_number": "A-01",
+  "address": "Jln. Example Street",
+  "status": "dihuni" or "tidak_dihuni" (optional, default: tidak_dihuni)
+}
+Validation Rules:
+- house_number: required, string, unique
+- address: nullable, string
+- status: in:dihuni,tidak_dihuni
+Response: Same as house object (HTTP 201)
+
+---
+
+1.3 GET HOUSE DETAILS
+Method: GET
+Endpoint: /api/houses/{id}
+Description: Get detailed information of a specific house including all residents history, payments, and fee types
+Response:
+{
+  "id": 1,
+  "house_number": "A-01",
+  "address": "Jln. Example Street",
+  "status": "dihuni",
+  "residents": [
+    {
+      "id": 1,
+      "full_name": "John Doe",
+      "pivot": {
+        "start_date": "2024-01-01",
+        "end_date": null,
+        "is_active": true
+      }
+    }
+  ],
+  "payments": [
+    {
+      "id": 1,
+      "rumah_id": 1,
+      "penghuni_id": 1,
+      "jenis_iuran_id": 1,
+      "month": 1,
+      "year": 2024,
+      "amount": 150000,
+      "status": "lunas",
+      "paid_at": "2024-01-15",
+      "feeType": {
+        "id": 1,
+        "name": "Kebersihan",
+        "amount": 150000
+      },
+      "resident": {
+        "id": 1,
+        "full_name": "John Doe"
+      }
+    }
+  ]
+}
+
+---
+
+1.4 UPDATE HOUSE
+Method: PUT/PATCH
+Endpoint: /api/houses/{id}
+Description: Update house information
+Request Body:
+{
+  "house_number": "A-02",
+  "address": "Jln. New Street",
+  "status": "tidak_dihuni"
+}
+Validation Rules:
+- house_number: string, unique (except current record)
+- address: nullable, string
+- status: in:dihuni,tidak_dihuni
+Response: Updated house object (HTTP 200)
+
+---
+
+1.5 DELETE HOUSE
+Method: DELETE
+Endpoint: /api/houses/{id}
+Description: Delete a house
+Response:
+{
+  "message": "House deleted"
+}
+(HTTP 200)
+
+---
+
+1.6 ASSIGN RESIDENT TO HOUSE
+Method: POST
+Endpoint: /api/houses/{id}/assign-resident
+Description: Assign a resident to a house. This will automatically deactivate any previously active resident.
+Request Body:
+{
+  "penghuni_id": 1,
+  "start_date": "2024-01-01"
+}
+Validation Rules:
+- penghuni_id: required, exists in penghuni table
+- start_date: required, date format (YYYY-MM-DD)
+Response:
+{
+  "message": "Resident assigned successfully"
+}
+(HTTP 200)
+
+---
+
+1.7 UNASSIGN RESIDENT FROM HOUSE
+Method: POST
+Endpoint: /api/houses/{id}/unassign-resident
+Description: Unassign the current resident from a house
+Request Body: {} (empty)
+Response:
+{
+  "message": "Resident unassigned successfully"
+}
+(HTTP 200)
+
+================================================================================
+                            2. RESIDENTS (PENGHUNI) API
+================================================================================
+
+2.1 LIST ALL RESIDENTS
+Method: GET
+Endpoint: /api/residents
+Description: Get all residents with their house history
+Response:
+{
+  "id": 1,
+  "full_name": "John Doe",
+  "ktp_photo": "ktp_photos/abc123.jpg",
+  "status": "tetap" or "kontrak",
+  "phone_number": "081234567890",
+  "is_married": true,
+  "houses": [
+    {
+      "id": 1,
+      "house_number": "A-01",
+      "pivot": {
+        "start_date": "2024-01-01",
+        "end_date": null,
+        "is_active": true
+      }
+    }
+  ],
+  "created_at": "2024-01-01T10:00:00Z",
+  "updated_at": "2024-01-01T10:00:00Z"
+}
+
+---
+
+2.2 CREATE NEW RESIDENT
+Method: POST
+Endpoint: /api/residents
+Description: Create a new resident with KTP photo upload
+Request: multipart/form-data
+{
+  "full_name": "John Doe",
+  "ktp_photo": <file>,
+  "status": "tetap" or "kontrak",
+  "phone_number": "081234567890",
+  "is_married": true or false
+}
+Validation Rules:
+- full_name: required, string
+- ktp_photo: required, image, mimes:jpg,jpeg,png, max:2048KB
+- status: required, in:tetap,kontrak
+- phone_number: required, string
+- is_married: required, boolean
+Response: Resident object (HTTP 201)
+Note: Image file will be stored in storage/app/public/ktp_photos/
+
+---
+
+2.3 GET RESIDENT DETAILS
+Method: GET
+Endpoint: /api/residents/{id}
+Description: Get detailed information of a resident including houses and payment history
+Response:
+{
+  "id": 1,
+  "full_name": "John Doe",
+  "ktp_photo": "ktp_photos/abc123.jpg",
+  "status": "tetap",
+  "phone_number": "081234567890",
+  "is_married": true,
+  "houses": [
+    {
+      "id": 1,
+      "house_number": "A-01",
+      "address": "Jln. Example",
+      "pivot": {
+        "start_date": "2024-01-01",
+        "end_date": null,
+        "is_active": true
+      }
+    }
+  ],
+  "payments": [
+    {
+      "id": 1,
+      "rumah_id": 1,
+      "penghuni_id": 1,
+      "jenis_iuran_id": 1,
+      "month": 1,
+      "year": 2024,
+      "amount": 150000,
+      "status": "lunas",
+      "paid_at": "2024-01-15",
+      "feeType": {
+        "id": 1,
+        "name": "Kebersihan",
+        "amount": 150000
+      }
+    }
+  ]
+}
+
+---
+
+2.4 UPDATE RESIDENT
+Method: PUT/PATCH
+Endpoint: /api/residents/{id}
+Description: Update resident information, optionally replace KTP photo
+Request: multipart/form-data
+{
+  "full_name": "Jane Doe",
+  "ktp_photo": <file or null>,
+  "status": "tetap",
+  "phone_number": "081234567890",
+  "is_married": false
+}
+Validation Rules:
+- full_name: string
+- ktp_photo: nullable, image, mimes:jpg,jpeg,png, max:2048KB
+- status: in:tetap,kontrak
+- phone_number: string
+- is_married: boolean
+Response: Updated resident object (HTTP 200)
+
+---
+
+2.5 DELETE RESIDENT
+Method: DELETE
+Endpoint: /api/residents/{id}
+Description: Delete a resident (soft delete - data not permanently removed)
+Response:
+{
+  "message": "Resident deleted"
+}
+(HTTP 200)
+
+================================================================================
+                        3. PAYMENTS (PEMBAYARAN IURAN) API
+================================================================================
+
+3.1 LIST PAYMENTS
+Method: GET
+Endpoint: /api/payments
+Query Parameters:
+  - month: integer (1-12) optional
+  - year: integer optional
+Description: Get all payments with optional filtering by month and year
+Response:
+[
+  {
+    "id": 1,
+    "rumah_id": 1,
+    "penghuni_id": 1,
+    "jenis_iuran_id": 1,
+    "month": 1,
+    "year": 2024,
+    "amount": 150000,
+    "status": "lunas" or "belum",
+    "paid_at": "2024-01-15",
+    "created_at": "2024-01-01T10:00:00Z",
+    "updated_at": "2024-01-01T10:00:00Z",
+    "rumah": {
+      "id": 1,
+      "house_number": "A-01"
+    },
+    "penghuni": {
+      "id": 1,
+      "full_name": "John Doe"
+    },
+    "jenisIuran": {
+      "id": 1,
+      "name": "Kebersihan",
+      "amount": 150000
+    }
+  }
+]
+
+---
+
+3.2 CREATE PAYMENT
+Method: POST
+Endpoint: /api/payments
+Description: Create a new payment record. Can create single monthly or annual (for Kebersihan only) payments.
+Request Body:
+{
+  "rumah_id": 1,
+  "penghuni_id": 1,
+  "jenis_iuran_id": 1,
+  "month": 1,
+  "year": 2024,
+  "status": "lunas" or "belum" (optional, default: belum),
+  "paid_at": "2024-01-15" (optional, only if status is lunas),
+  "pay_annual": true or false (optional, only works for Kebersihan)
+}
+Validation Rules:
+- rumah_id: required, exists in rumah table
+- penghuni_id: required, exists in penghuni table
+- jenis_iuran_id: required, exists in jenis_iuran table
+- month: required, integer, min:1, max:12
+- year: required, integer
+- status: in:lunas,belum
+- paid_at: nullable, date
+- pay_annual: boolean
+Special Behavior:
+- If pay_annual=true and fee type is Kebersihan: Creates 12 payment records (all months of the year)
+- If pay_annual=true and fee type is NOT Kebersihan: Only creates single monthly record
+Response: Payment object or array of payment objects (HTTP 201)
+
+---
+
+3.3 GET PAYMENT DETAILS
+Method: GET
+Endpoint: /api/payments/{id}
+Description: Get detailed payment information
+Response:
+{
+  "id": 1,
+  "rumah_id": 1,
+  "penghuni_id": 1,
+  "jenis_iuran_id": 1,
+  "month": 1,
+  "year": 2024,
+  "amount": 150000,
+  "status": "lunas",
+  "paid_at": "2024-01-15",
+  "created_at": "2024-01-01T10:00:00Z",
+  "updated_at": "2024-01-01T10:00:00Z",
+  "rumah": {
+    "id": 1,
+    "house_number": "A-01",
+    "address": "Jln. Example"
+  },
+  "penghuni": {
+    "id": 1,
+    "full_name": "John Doe",
+    "phone_number": "081234567890"
+  },
+  "jenis_iuran": {
+    "id": 1,
+    "name": "Kebersihan",
+    "amount": 150000
+  }
+}
+
+---
+
+3.4 UPDATE PAYMENT
+Method: PUT/PATCH
+Endpoint: /api/payments/{id}
+Description: Update payment status and paid date
+Request Body:
+{
+  "status": "lunas" or "belum",
+  "paid_at": "2024-01-15" (optional)
+}
+Validation Rules:
+- status: in:lunas,belum
+- paid_at: nullable, date
+Response: Updated payment object (HTTP 200)
+
+---
+
+3.5 DELETE PAYMENT
+Method: DELETE
+Endpoint: /api/payments/{id}
+Description: Delete a payment record
+Response:
+{
+  "message": "Payment deleted"
+}
+(HTTP 200)
+
+================================================================================
+                        4. EXPENSES (PENGELUARAN) API
+================================================================================
+
+4.1 LIST EXPENSES
+Method: GET
+Endpoint: /api/expenses
+Query Parameters:
+  - month: integer (1-12) optional
+  - year: integer optional
+Description: Get all expenses with optional filtering by month and year, ordered by expense date (newest first)
+Response:
+[
+  {
+    "id": 1,
+    "description": "Perbaikan Jalan",
+    "amount": 500000,
+    "month": 1,
+    "year": 2024,
+    "expense_date": "2024-01-10",
+    "is_recurring": false,
+    "created_at": "2024-01-01T10:00:00Z",
+    "updated_at": "2024-01-01T10:00:00Z"
+  }
+]
+
+---
+
+4.2 CREATE EXPENSE
+Method: POST
+Endpoint: /api/expenses
+Description: Create a new expense record
+Request Body:
+{
+  "description": "Perbaikan Jalan",
+  "amount": 500000,
+  "month": 1,
+  "year": 2024,
+  "expense_date": "2024-01-10",
+  "is_recurring": false
+}
+Validation Rules:
+- description: required, string
+- amount: required, integer, min:0
+- month: required, integer, min:1, max:12
+- year: required, integer
+- expense_date: required, date (YYYY-MM-DD)
+- is_recurring: boolean (optional, default: false)
+Response: Expense object (HTTP 201)
+
+---
+
+4.3 GET EXPENSE DETAILS
+Method: GET
+Endpoint: /api/expenses/{id}
+Description: Get detailed expense information
+Response:
+{
+  "id": 1,
+  "description": "Perbaikan Jalan",
+  "amount": 500000,
+  "month": 1,
+  "year": 2024,
+  "expense_date": "2024-01-10",
+  "is_recurring": false,
+  "created_at": "2024-01-01T10:00:00Z",
+  "updated_at": "2024-01-01T10:00:00Z"
+}
+
+---
+
+4.4 UPDATE EXPENSE
+Method: PUT/PATCH
+Endpoint: /api/expenses/{id}
+Description: Update expense information
+Request Body:
+{
+  "description": "Perbaikan Jalan dan Taman",
+  "amount": 600000,
+  "expense_date": "2024-01-15",
+  "is_recurring": true
+}
+Validation Rules:
+- description: string
+- amount: integer, min:0
+- expense_date: date
+- is_recurring: boolean
+Response: Updated expense object (HTTP 200)
+
+---
+
+4.5 DELETE EXPENSE
+Method: DELETE
+Endpoint: /api/expenses/{id}
+Description: Delete an expense record
+Response:
+{
+  "message": "Expense deleted"
+}
+(HTTP 200)
+
+================================================================================
+                          5. REPORTS (LAPORAN) API
+================================================================================
+
+5.1 GET ANNUAL SUMMARY
+Method: GET
+Endpoint: /api/reports/summary
+Query Parameters:
+  - year: integer (optional, default: current year)
+Description: Get monthly income, expense, and balance summary for an entire year
+Response:
+{
+  "year": 2024,
+  "data": [
+    {
+      "month": 1,
+      "income": 1500000,
+      "expense": 500000,
+      "balance": 1000000
+    },
+    {
+      "month": 2,
+      "income": 1500000,
+      "expense": 450000,
+      "balance": 1050000
+    },
+    ... (months 3-12)
+  ]
+}
+
+---
+
+5.2 GET MONTHLY DETAILED REPORT
+Method: GET
+Endpoint: /api/reports/monthly/{year}/{month}
+Path Parameters:
+  - year: integer (e.g., 2024)
+  - month: integer (1-12)
+Description: Get detailed report for a specific month including all payments and expenses
+Response:
+{
+  "year": 2024,
+  "month": 1,
+  "total_income": 1500000,
+  "total_expense": 500000,
+  "balance": 1000000,
+  "payments": [
+    {
+      "id": 1,
+      "rumah_id": 1,
+      "penghuni_id": 1,
+      "jenis_iuran_id": 1,
+      "month": 1,
+      "year": 2024,
+      "amount": 150000,
+      "status": "lunas",
+      "paid_at": "2024-01-15",
+      "penghuni": {
+        "id": 1,
+        "full_name": "John Doe"
+      },
+      "rumah": {
+        "id": 1,
+        "house_number": "A-01"
+      },
+      "jenisIuran": {
+        "id": 1,
+        "name": "Kebersihan",
+        "amount": 150000
+      }
+    }
+  ],
+  "expenses": [
+    {
+      "id": 1,
+      "description": "Perbaikan Jalan",
+      "amount": 500000,
+      "month": 1,
+      "year": 2024,
+      "expense_date": "2024-01-10",
+      "is_recurring": false
+    }
+  ]
+}
+
+================================================================================
+                              ERROR RESPONSES
+================================================================================
+
+All endpoints return proper HTTP status codes:
+
+HTTP 200 OK
+- Request successful, data returned
+
+HTTP 201 CREATED
+- Resource created successfully
+
+HTTP 400 BAD REQUEST
+Response:
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "field_name": ["Error message here"]
+  }
+}
+
+HTTP 404 NOT FOUND
+Response:
+{
+  "message": "Not Found"
+}
+
+HTTP 422 UNPROCESSABLE ENTITY (Validation Error)
+Response:
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "house_number": [
+      "The house number has already been taken."
+    ]
+  }
+}
+
+HTTP 500 INTERNAL SERVER ERROR
+Response:
+{
+  "message": "Server error occurred"
+}
+
+================================================================================
+                            IMPORTANT NOTES
+================================================================================
+
+1. DATA TYPES:
+   - IDs: integer
+   - Dates: YYYY-MM-DD format
+   - DateTime: ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)
+   - Boolean: true/false
+   - Currency: integer (in Rupiah, no decimal points)
+
+2. RELATIONSHIPS:
+   - One House can have multiple Residents (current + historical)
+   - One Resident can live in multiple Houses (historical data)
+   - One Payment links: House + Resident + Fee Type
+   - Active relationships are marked with is_active: true
+
+3. FILE UPLOADS:
+   - Only KTP photos use multipart/form-data
+   - All other endpoints use application/json
+
+4. SOFT DELETES:
+   - Residents use soft deletes (deleted_at field)
+   - Data can be recovered from database if needed
+
+5. AVAILABLE FEE TYPES (jenis_iuran):
+   These must be pre-created in the database:
+   - Kebersihan (Cleaning): Can be paid annually via pay_annual=true
+   - Keamanan (Security): Must be paid monthly
+   - Maintenance fees: Must be paid monthly
+   (Add more fee types as needed)
+
+6. RESIDENT STATUS:
+   - tetap: Permanent resident
+   - kontrak: Contract/temporary resident
+
+7. HOUSE STATUS:
+   - dihuni: Occupied
+   - tidak_dihuni: Unoccupied
+
+8. PAYMENT STATUS:
+   - lunas: Paid
+   - belum: Not paid
+
+================================================================================
+                          EXAMPLE WORKFLOWS
+================================================================================
+
+WORKFLOW 1: Creating a New House Occupant
+Step 1: POST /api/residents (create new resident)
+Step 2: POST /api/houses/{id}/assign-resident (assign to house)
+Step 3: POST /api/payments (create payment records for all fee types)
+
+WORKFLOW 2: Monthly Payment Collection
+Step 1: GET /api/payments?month=1&year=2024 (list all unpaid)
+Step 2: PATCH /api/payments/{id} (mark as paid)
+Step 3: GET /api/reports/summary (verify income)
+
+WORKFLOW 3: Annual Cleaning Fee Payment
+Step 1: POST /api/payments with pay_annual=true, jenis_iuran_id=<kebersihan_id>
+(This automatically creates 12 payment records for that year)
+
+WORKFLOW 4: Getting Financial Reports
+Step 1: GET /api/reports/summary?year=2024 (get overview)
+Step 2: GET /api/reports/monthly/2024/1 (get detailed monthly report)
+
+================================================================================
+                          AUTHENTICATION NOTE
+================================================================================
+
+This documentation assumes the API is publicly accessible for demonstration.
+In a production environment, add:
+- API token authentication
+- Rate limiting
+- CORS headers
+- Request/response logging
+
+Current Setup:
+- Base URL: http://localhost/api
+- Database: rt_management (MySQL)
+- Framework: Laravel 10+
+
+================================================================================
+                          LAST UPDATED: 2024
+================================================================================
